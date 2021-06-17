@@ -1,0 +1,27 @@
+train:
+  Resize:
+    height: 416
+    width: 416
+  ColorJitter:
+  Rotate:
+  VerticalFlip:
+  HorizontalFlip:
+  ToTensorV2:
+
+val:
+  Resize:
+    height: 416
+    width: 416
+  ToTensorV2:
+
+test:
+  Resize:
+    height: 416
+    width: 416
+  ToTensorV2:
+
+predict:
+  Resize:
+    height: 416
+    width: 416
+  ToTensorV2:

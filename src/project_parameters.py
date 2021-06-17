@@ -47,6 +47,12 @@ class ProjectParameters:
         return None if s == 'None' or s == 'none' else s
 
     def _str_to_str_list(self, s):
+        if '.txt' in s:
+            content = []
+            with open(s, 'r') as f:
+                for c in f.readlines():
+                    content.append(c[:-1])
+            return content
         return [str(v) for v in s.split(',') if len(v) > 0]
 
     def _str_to_int(self, s):
