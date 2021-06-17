@@ -43,13 +43,23 @@ class ProjectParameters:
         self._parser.add_argument('--transform_config_path', type=self._str_to_str,
                                   default='config/transform.yaml', help='the transform config path.')
 
+    # debug
+        self._parser.add_argument(
+            '--max_files', type=self._str_to_int, default=None, help='the maximum number of files for loading files.')
+        self._parser.add_argument('--profiler', type=str, default=None, choices=[
+            'simple', 'advanced'], help='to profile individual steps during training and assist in identifying bottlenecks.')
+        self._parser.add_argument('--weights_summary', type=str, default=None, choices=[
+                                  'top', 'full'], help='prints a summary of the weights when training begins.')
+        self._parser.add_argument('--tune_debug', action='store_true',
+                                  default=False, help='whether to use debug mode while tuning.')
+
     def _str_to_str(self, s):
         return None if s == 'None' or s == 'none' else s
 
     def _str_to_str_list(self, s):
         if '.txt' in s:
             content = []
-            with open(s, 'r') as f:
+            with open(abspath(s), 'r') as f:
                 for c in f.readlines():
                     content.append(c[:-1])
             return content
@@ -87,12 +97,15 @@ class ProjectParameters:
 
         # data preparation
         if project_parameters.predefined_dataset is not None:
-            project_parameters.classes = {c: idx for idx, c in enumerate(sorted(
-                ['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car', 'cat', 'chair', 'cow', 'diningtable', 'dog', 'horse', 'motorbike', 'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor']))}
+            project_parameters.classes = sorted(['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car', 'cat', 'chair',
+                                                 'cow', 'diningtable', 'dog', 'horse', 'motorbike', 'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor'])
+            project_parameters.class_to_idx = {
+                c: idx for idx, c in enumerate(project_parameters.classes)}
             project_parameters.num_classes = len(project_parameters.classes)
         else:
-            project_parameters.classes = {
-                c: idx for idx, c in enumerate(sorted(project_parameters.classes))}
+            project_parameters.classes = sorted(project_parameters.classes)
+            project_parameters.class_to_idx = {
+                c: idx for idx, c in enumerate(project_parameters.classes)}
             project_parameters.num_classes = len(project_parameters.classes)
         #project_parameters.use_balance = not project_parameters.no_balance and project_parameters.predefined_dataset is None
         if project_parameters.transform_config_path is not None:
