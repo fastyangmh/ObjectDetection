@@ -31,8 +31,8 @@ class VOCDetection(VOCDetection):
         self.class_to_idx = {c: idx for idx, c in enumerate(sorted(['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car', 'cat',
                                                                     'chair', 'cow', 'diningtable', 'dog', 'horse', 'motorbike', 'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor']))}
         self.images = np.array(self.images)
-        # cannot modify the self.annotations,
-        # but modify the self.targets will impact the self.annotations
+        # cannot directly modify the self.annotations,
+        # but modify the self.targets will impact the self.annotations.
         self.targets = np.array(self.targets)
 
     def _voc_to_yolo(self, annotation):
@@ -173,7 +173,3 @@ if __name__ == '__main__':
 
     # get data loaders
     data_loaders = data_module.get_data_loaders()
-
-    #
-    for x, y, z in data_loaders['train']:
-        break

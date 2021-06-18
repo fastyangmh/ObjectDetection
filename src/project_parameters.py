@@ -35,11 +35,8 @@ class ProjectParameters:
             '--batch_size', type=int, default=32, help='how many samples per batch to load.')
         self._parser.add_argument('--classes', type=self._str_to_str_list, required=True,
                                   help='the classes of data. if use a predefined dataset, please set value as None.')
-        self._parser.add_argument('--val_size', type=float, default=0.1,
-                                  help='the validation data size used for the predefined dataset.')
         self._parser.add_argument('--num_workers', type=int, default=torch.get_num_threads(
         ), help='how many subprocesses to use for data loading.')
-        #self._parser.add_argument('--no_balance', action='store_true', default=False, help='whether to balance the data.')
         self._parser.add_argument('--transform_config_path', type=self._str_to_str,
                                   default='config/transform.yaml', help='the transform config path.')
 
@@ -60,8 +57,8 @@ class ProjectParameters:
         if '.txt' in s:
             content = []
             with open(abspath(s), 'r') as f:
-                for c in f.readlines():
-                    content.append(c[:-1])
+                for line in f.readlines():
+                    content.append(line[:-1])
             return content
         return [str(v) for v in s.split(',') if len(v) > 0]
 
@@ -88,7 +85,6 @@ class ProjectParameters:
         project_parameters.data_path = abspath(
             path=project_parameters.data_path)
         if project_parameters.predefined_dataset is not None:
-            # the classes of predefined dataset will automatically get from data_preparation
             project_parameters.data_path = join(
                 project_parameters.data_path, project_parameters.predefined_dataset)
         project_parameters.use_cuda = torch.cuda.is_available(
@@ -107,7 +103,6 @@ class ProjectParameters:
             project_parameters.class_to_idx = {
                 c: idx for idx, c in enumerate(project_parameters.classes)}
             project_parameters.num_classes = len(project_parameters.classes)
-        #project_parameters.use_balance = not project_parameters.no_balance and project_parameters.predefined_dataset is None
         if project_parameters.transform_config_path is not None:
             project_parameters.transform_config_path = abspath(
                 project_parameters.transform_config_path)
