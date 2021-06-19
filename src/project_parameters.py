@@ -1,8 +1,9 @@
 # import
 import argparse
 import torch
-from os.path import join, abspath
+from os.path import join, abspath, isfile
 from src.utils import load_yaml
+from timm import list_models
 
 # class
 
@@ -40,7 +41,17 @@ class ProjectParameters:
         self._parser.add_argument('--transform_config_path', type=self._str_to_str,
                                   default='config/transform.yaml', help='the transform config path.')
 
-    # debug
+        # model
+        self._parser.add_argument('--in_chans', type=int, default=3,
+                                  help='number of input channels / colors (default: 3).')
+        self._parser.add_argument('--backbone_model', type=str, required=True,
+                                  help='if you want to use a self-defined model, give the path of the self-defined model. otherwise, the provided backbone model is as a followed list. {}'.format(list_models()))
+        self._parser.add_argument('--checkpoint_path', type=str, default=None,
+                                  help='the path of the pre-trained model checkpoint.')
+        self._parser.add_argument('--optimizer_config_path', type=str,
+                                  default='config/optimizer.yaml', help='the optimizer config path.')
+
+        # debug
         self._parser.add_argument(
             '--max_files', type=self._str_to_int, default=None, help='the maximum number of files for loading files.')
         self._parser.add_argument('--profiler', type=str, default=None, choices=[
@@ -93,6 +104,15 @@ class ProjectParameters:
 
         # data preparation
         if project_parameters.predefined_dataset is not None:
+            project_parameters.anchor_box = [[0.396, 0.70870871],
+                                             [0.208, 0.49866667],
+                                             [0.172, 0.152],
+                                             [0.334, 0.29144385],
+                                             [0.112, 0.29066667],
+                                             [0.852, 0.882],
+                                             [0.068, 0.12],
+                                             [0.686, 0.46624599],
+                                             [0.032, 0.056]]
             project_parameters.classes = sorted(['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car', 'cat', 'chair',
                                                  'cow', 'diningtable', 'dog', 'horse', 'motorbike', 'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor'])
             project_parameters.class_to_idx = {
@@ -106,6 +126,13 @@ class ProjectParameters:
         if project_parameters.transform_config_path is not None:
             project_parameters.transform_config_path = abspath(
                 project_parameters.transform_config_path)
+
+        # model
+        project_parameters.optimizer_config_path = abspath(
+            project_parameters.optimizer_config_path)
+        if isfile(project_parameters.backbone_model):
+            project_parameters.backbone_model = abspath(
+                project_parameters.backbone_model)
 
         return project_parameters
 
