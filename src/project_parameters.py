@@ -4,6 +4,7 @@ import torch
 from os.path import join, abspath, isfile
 from src.utils import load_yaml
 from timm import list_models
+import numpy as np
 
 # class
 
@@ -30,6 +31,8 @@ class ProjectParameters:
                                   help='number of GPUs to train on (int) or which GPUs to train on (list or str) applied per node. if give -1 will use all available GPUs.')
         self._parser.add_argument(
             '--parameters_config_path', type=str, default=None, help='the parameters config path.')
+        self._parser.add_argument(
+            '--image_size', type=int, default=416, help='the image size. hypothesis the image is a square rectangle.')
 
         # data preparation
         self._parser.add_argument(
@@ -104,15 +107,15 @@ class ProjectParameters:
 
         # data preparation
         if project_parameters.predefined_dataset is not None:
-            project_parameters.anchor_box = [[0.396, 0.70870871],
-                                             [0.208, 0.49866667],
-                                             [0.172, 0.152],
-                                             [0.334, 0.29144385],
-                                             [0.112, 0.29066667],
-                                             [0.852, 0.882],
-                                             [0.068, 0.12],
-                                             [0.686, 0.46624599],
-                                             [0.032, 0.056]]
+            project_parameters.anchor_boxes = np.array([[0.13, 0.26666667],
+                                                        [0.06, 0.15466667],
+                                                        [0.848, 0.87],
+                                                        [0.302, 0.256],
+                                                        [0.034, 0.05866667],
+                                                        [0.212, 0.5015015],
+                                                        [0.12, 0.096],
+                                                        [0.640625, 0.43466667],
+                                                        [0.396, 0.712]])
             project_parameters.classes = sorted(['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car', 'cat', 'chair',
                                                  'cow', 'diningtable', 'dog', 'horse', 'motorbike', 'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor'])
             project_parameters.class_to_idx = {
