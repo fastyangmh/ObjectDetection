@@ -54,6 +54,26 @@ class ProjectParameters:
         self._parser.add_argument('--optimizer_config_path', type=str,
                                   default='config/optimizer.yaml', help='the optimizer config path.')
 
+        # train
+        self._parser.add_argument('--val_iter', type=self._str_to_int,
+                                  default=None, help='the number of validation iteration.')
+        self._parser.add_argument(
+            '--lr', type=float, default=1e-3, help='the learning rate.')
+        self._parser.add_argument(
+            '--train_iter', type=int, default=100, help='the number of training iteration.')
+        self._parser.add_argument('--lr_scheduler', type=str, default='CosineAnnealingLR', choices=[
+                                  'StepLR', 'CosineAnnealingLR'], help='the lr scheduler while training model.')
+        self._parser.add_argument(
+            '--step_size', type=int, default=10, help='period of learning rate decay.')
+        self._parser.add_argument('--gamma', type=int, default=0.1,
+                                  help='multiplicative factor of learning rate decay.')
+        self._parser.add_argument('--no_early_stopping', action='store_true',
+                                  default=False, help='whether to use early stopping while training.')
+        self._parser.add_argument('--patience', type=int, default=3,
+                                  help='number of checks with no improvement after which training will be stopped.')
+        self._parser.add_argument('--precision', type=int, default=32, choices=[
+                                  16, 32], help='full precision (32) or half precision (16). Can be used on CPU, GPU or TPUs.')
+
         # debug
         self._parser.add_argument(
             '--max_files', type=self._str_to_int, default=None, help='the maximum number of files for loading files.')
@@ -136,6 +156,14 @@ class ProjectParameters:
         if isfile(project_parameters.backbone_model):
             project_parameters.backbone_model = abspath(
                 project_parameters.backbone_model)
+
+        # train
+        if project_parameters.val_iter is None:
+            project_parameters.val_iter = project_parameters.train_iter
+        project_parameters.use_early_stopping = not project_parameters.no_early_stopping
+        if project_parameters.use_early_stopping:
+            # because the PyTorch lightning needs to get validation loss in every training epoch.
+            project_parameters.val_iter = 1
 
         return project_parameters
 
