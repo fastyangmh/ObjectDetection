@@ -71,7 +71,8 @@ class VOCDetection(VOCDetection):
             assert False, 'the image size not same the specific size. {}'.format(
                 image.shape)
         image = image/255.
-        bboxes = np.append(np.zeros((len(bboxes), 1)), bboxes, 1)
+        bboxes = np.append(np.zeros((len(bboxes), 1)),
+                           bboxes, 1).astype(np.float32)
         return image, bboxes
 
 
@@ -104,7 +105,8 @@ class YOLODataset(Dataset):
             assert False, 'the image size not same the specific size. {}'.format(
                 image.shape)
         image = image/255.
-        bboxes = np.append(np.zeros((len(bboxes), 1)), bboxes, 1)
+        bboxes = np.append(np.zeros((len(bboxes), 1)),
+                           bboxes, 1).astype(np.float32)
         return image, bboxes
 
 
@@ -131,12 +133,12 @@ class DataModule(LightningDataModule):
             self.project_parameters.anchor_boxes = get_anchor_bbox(
                 annotations=self.dataset['train'].annotations, n_clusters=9)
         else:
-            train_set = VOCDetection(root=project_parameters.data_path, year='2012', image_set='train', download=False,
-                                     transform=self.transform_dict['train'], image_size=self.project_parameters.image_size)
-            val_set = VOCDetection(root=project_parameters.data_path, year='2012', image_set='val', download=False,
-                                   transform=self.transform_dict['val'], image_size=self.project_parameters.image_size)
-            test_set = VOCDetection(root=project_parameters.data_path, year='2007', image_set='test', download=False,
-                                    transform=self.transform_dict['test'], image_size=self.project_parameters.image_size)
+            train_set = VOCDetection(root=self.project_parameters.data_path, year='2012', image_set='train',
+                                     download=False, transform=self.transform_dict['train'], image_size=self.project_parameters.image_size)
+            val_set = VOCDetection(root=self.project_parameters.data_path, year='2012', image_set='val',
+                                   download=False, transform=self.transform_dict['val'], image_size=self.project_parameters.image_size)
+            test_set = VOCDetection(root=self.project_parameters.data_path, year='2007', image_set='test',
+                                    download=False, transform=self.transform_dict['test'], image_size=self.project_parameters.image_size)
             if self.project_parameters.max_files is not None:
                 for dataset in [train_set, val_set, test_set]:
                     index = random.sample(

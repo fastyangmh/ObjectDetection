@@ -71,6 +71,7 @@ def get_anchor_bbox(annotations, n_clusters):
     bboxes = np.array(bboxes, dtype=np.float32)
     kmeans = AnchorKmeans(n_clusters=n_clusters, distance_method=np.median)
     centroid_bboxes = kmeans(bboxes=bboxes)
+    centroid_bboxes = centroid_bboxes[np.argsort(centroid_bboxes[:, 0])]
     return centroid_bboxes
 
 
@@ -138,8 +139,10 @@ def nms_with_depth(bboxes, confidence, iou_threshold, depth_layer, depth_thresho
                 D_oj = depth_layer[(bboxes[j, 0] + bboxes[j, 2]) //
                                    2, (bboxes[j, 1] + bboxes[j, 3])//2]
                 if D_oi - D_oj < depth_threshold:
-                    average_depth_oi = depth_layer[bboxes[i, 0]                                                   : bboxes[i, 2], bboxes[i, 1]: bboxes[i, 3]]
-                    average_depth_oj = depth_layer[bboxes[j, 0]                                                   : bboxes[j, 2], bboxes[j, 1]: bboxes[j, 3]]
+                    average_depth_oi = depth_layer[bboxes[i, 0]
+                        : bboxes[i, 2], bboxes[i, 1]: bboxes[i, 3]]
+                    average_depth_oj = depth_layer[bboxes[j, 0]
+                        : bboxes[j, 2], bboxes[j, 1]: bboxes[j, 3]]
                     score_oi = confidence[i] + 1/torch.log(average_depth_oi)
                     score_oj = confidence[j] + 1/torch.log(average_depth_oj)
                     if score_oi > score_oj:
