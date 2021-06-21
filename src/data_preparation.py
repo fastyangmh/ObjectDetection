@@ -27,7 +27,7 @@ def collate_fn(batch):
 
 
 class VOCDetection(VOCDetection):
-    def __init__(self, root: str, year: str, image_set: str, download: bool, transform: Optional[Callable]):
+    def __init__(self, root: str, year: str, image_set: str, download: bool, transform: Optional[Callable], image_size):
         super().__init__(root, year=year, image_set=image_set,
                          download=download, transform=transform)
         self.class_to_idx = {c: idx for idx, c in enumerate(sorted(['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car', 'cat',
@@ -36,6 +36,7 @@ class VOCDetection(VOCDetection):
         # cannot directly modify the self.annotations,
         # but modify the self.targets will impact the self.annotations.
         self.targets = np.array(self.targets)
+        self.image_size = image_size
 
     def _voc_to_yolo(self, annotation):
         size = annotation['annotation']['size']
@@ -66,13 +67,16 @@ class VOCDetection(VOCDetection):
             image = transformed['image']
             bboxes = transformed['bboxes']
             bboxes = np.roll(bboxes, 1, -1)
+        if image.shape[1] != self.image_size:
+            assert False, 'the image size not same the specific size. {}'.format(
+                image.shape)
         image = image/255.
         bboxes = np.append(np.zeros((len(bboxes), 1)), bboxes, 1)
         return image, bboxes
 
 
 class YOLODataset(Dataset):
-    def __init__(self, root, transform, class_to_idx) -> None:
+    def __init__(self, root, transform, class_to_idx, image_size) -> None:
         super().__init__()
         image_types = ['png', 'jpg']
         self.images = np.array(sorted(
@@ -81,19 +85,24 @@ class YOLODataset(Dataset):
             sorted(glob(join(root, 'annotations/*.txt'))))
         self.transform = transform
         self.class_to_idx = class_to_idx
+        self.image_size = image_size
 
     def __len__(self):
         return len(self.images)
 
     def __getitem__(self, index):
         image = np.array(Image.open(self.images[index]).convert("RGB"))
-        bboxes = np.loadtxt(self.annotations[index], dtype=np.float32)
+        bboxes = np.loadtxt(
+            self.annotations[index], dtype=np.float32).reshape(-1, 5)
         if self.transform is not None:
             bboxes = np.roll(bboxes, -1, -1)
             transformed = self.transform(image=image, bboxes=bboxes)
             image = transformed['image']
             bboxes = transformed['bboxes']
             bboxes = np.roll(bboxes, 1, -1)
+        if image.shape[1] != self.image_size:
+            assert False, 'the image size not same the specific size. {}'.format(
+                image.shape)
         image = image/255.
         bboxes = np.append(np.zeros((len(bboxes), 1)), bboxes, 1)
         return image, bboxes
@@ -110,8 +119,8 @@ class DataModule(LightningDataModule):
         if self.project_parameters.predefined_dataset is None:
             self.dataset = {}
             for stage in ['train', 'val', 'test']:
-                self.dataset[stage] = YOLODataset(root=join(self.project_parameters.data_path, stage),
-                                                  transform=self.transform_dict[stage], class_to_idx=self.project_parameters.class_to_idx)
+                self.dataset[stage] = YOLODataset(root=join(self.project_parameters.data_path, stage), transform=self.transform_dict[stage],
+                                                  class_to_idx=self.project_parameters.class_to_idx, image_size=self.project_parameters.image_size)
                 if self.project_parameters.max_files is not None:
                     index = random.sample(
                         list(range(len(self.dataset[stage]))), k=self.project_parameters.max_files)
@@ -122,12 +131,12 @@ class DataModule(LightningDataModule):
             self.project_parameters.anchor_boxes = get_anchor_bbox(
                 annotations=self.dataset['train'].annotations, n_clusters=9)
         else:
-            train_set = VOCDetection(root=project_parameters.data_path, year='2012',
-                                     image_set='train', download=False, transform=self.transform_dict['train'])
-            val_set = VOCDetection(root=project_parameters.data_path, year='2012',
-                                   image_set='val', download=False, transform=self.transform_dict['val'])
-            test_set = VOCDetection(root=project_parameters.data_path, year='2007',
-                                    image_set='test', download=False, transform=self.transform_dict['test'])
+            train_set = VOCDetection(root=project_parameters.data_path, year='2012', image_set='train', download=False,
+                                     transform=self.transform_dict['train'], image_size=self.project_parameters.image_size)
+            val_set = VOCDetection(root=project_parameters.data_path, year='2012', image_set='val', download=False,
+                                   transform=self.transform_dict['val'], image_size=self.project_parameters.image_size)
+            test_set = VOCDetection(root=project_parameters.data_path, year='2007', image_set='test', download=False,
+                                    transform=self.transform_dict['test'], image_size=self.project_parameters.image_size)
             if self.project_parameters.max_files is not None:
                 for dataset in [train_set, val_set, test_set]:
                     index = random.sample(
