@@ -2,9 +2,10 @@
 import argparse
 import torch
 from os.path import join, abspath, isfile
-from src.utils import load_yaml
+from src.utils import load_yaml, get_anchor_bbox
 from timm import list_models
 import numpy as np
+from glob import glob
 
 # class
 
@@ -148,6 +149,8 @@ class ProjectParameters:
                 c: idx for idx, c in enumerate(project_parameters.classes)}
             project_parameters.num_classes = len(project_parameters.classes)
         else:
+            project_parameters.anchor_boxes = get_anchor_bbox(annotations=glob(
+                join(project_parameters.data_path, 'train/annotations/*.txt')), n_clusters=9)
             project_parameters.classes = sorted(project_parameters.classes)
             project_parameters.class_to_idx = {
                 c: idx for idx, c in enumerate(project_parameters.classes)}

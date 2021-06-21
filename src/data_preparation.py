@@ -9,7 +9,7 @@ from PIL import Image
 from xml.etree.ElementTree import parse as ET_parse
 from os.path import join
 from glob import glob
-from src.utils import get_anchor_bbox, get_transform_from_file
+from src.utils import get_transform_from_file
 from pytorch_lightning import LightningDataModule
 import random
 
@@ -130,8 +130,6 @@ class DataModule(LightningDataModule):
                     self.dataset[stage].annotations = self.dataset[stage].annotations[index]
             assert self.dataset['train'].class_to_idx == self.project_parameters.class_to_idx, 'the class_to_idx is not the same. please check the class_to_idx of data. from YOLODataset: {} from argparse: {}'.format(
                 self.dataset['train'].class_to_idx, self.project_parameters.class_to_idx)
-            self.project_parameters.anchor_boxes = get_anchor_bbox(
-                annotations=self.dataset['train'].annotations, n_clusters=9)
         else:
             train_set = VOCDetection(root=self.project_parameters.data_path, year='2012', image_set='train',
                                      download=False, transform=self.transform_dict['train'], image_size=self.project_parameters.image_size)
