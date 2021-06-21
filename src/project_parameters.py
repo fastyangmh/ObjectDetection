@@ -74,6 +74,12 @@ class ProjectParameters:
         self._parser.add_argument('--precision', type=int, default=32, choices=[
                                   16, 32], help='full precision (32) or half precision (16). Can be used on CPU, GPU or TPUs.')
 
+        # predict
+        self._parser.add_argument(
+            '--confidence_threshold', type=float, default=0.5, help='the threshold of confidence.')
+        self._parser.add_argument(
+            '--iou_threshold', type=float, default=0.5, help='the threshold of iou.')
+
         # debug
         self._parser.add_argument(
             '--max_files', type=self._str_to_int, default=None, help='the maximum number of files for loading files.')

@@ -47,8 +47,10 @@ def get_transform_from_file(filepath):
                                                           ['{}={}'.format(a, b) for a, b in value.items()])
                     transform_dict[stage].append(
                         eval('A.{}({})'.format(name, value)))
-            transform_dict[stage] = A.Compose(transforms=transform_dict[stage],
-                                              bbox_params=A.BboxParams(format='yolo'))
+            bbox_params = A.BboxParams(
+                format='yolo') if stage != 'predict' else None
+            transform_dict[stage] = A.Compose(
+                transforms=transform_dict[stage], bbox_params=bbox_params)
         return transform_dict
     else:
         assert False, 'please check the transform config path: {}'.format(
@@ -233,6 +235,7 @@ def get_img_with_bboxes(img, bboxes, resize=True, labels=None, confidences=None)
     img_ = img.copy()
 
     for i, bbox in enumerate(arr):
+        bbox = bbox.astype(int)
         img_ = cv2.rectangle(
             img_, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (255, 0, 0), 3)
         if labels:
