@@ -80,6 +80,8 @@ class ProjectParameters:
             '--confidence_threshold', type=float, default=0.5, help='the threshold of confidence.')
         self._parser.add_argument(
             '--iou_threshold', type=float, default=0.5, help='the threshold of iou.')
+        self._parser.add_argument(
+            '--anchor_boxes_path', type=str, default=None, help='the anchor boxes path.')
 
         # debug
         self._parser.add_argument(
@@ -149,8 +151,16 @@ class ProjectParameters:
                 c: idx for idx, c in enumerate(project_parameters.classes)}
             project_parameters.num_classes = len(project_parameters.classes)
         else:
-            project_parameters.anchor_boxes = get_anchor_bbox(annotations=glob(
-                join(project_parameters.data_path, 'train/annotations/*.txt')), n_clusters=9)
+            if project_parameters.mode != 'predict':
+                project_parameters.anchor_boxes = get_anchor_bbox(annotations=glob(
+                    join(project_parameters.data_path, 'train/annotations/*.txt')), n_clusters=9)
+                np.savetxt(join(project_parameters.data_path,
+                                'anchor_boxes.txt'), project_parameters.anchor_boxes)
+            elif project_parameters.anchor_boxes_path is not None and isfile(project_parameters.anchor_boxes_path):
+                project_parameters.anchor_boxes = np.loadtxt(
+                    abspath(project_parameters.anchor_boxes_path))
+            else:
+                assert False, 'please give the anchor_boxes_path, when predicting mode.'
             project_parameters.classes = sorted(project_parameters.classes)
             project_parameters.class_to_idx = {
                 c: idx for idx, c in enumerate(project_parameters.classes)}
