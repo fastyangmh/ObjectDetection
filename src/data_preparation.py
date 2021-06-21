@@ -9,7 +9,7 @@ from PIL import Image
 from xml.etree.ElementTree import parse as ET_parse
 from os.path import join
 from glob import glob
-from src.utils import get_transform_from_file
+from src.utils import get_anchor_bbox, get_transform_from_file
 from pytorch_lightning import LightningDataModule
 import random
 
@@ -17,9 +17,11 @@ import random
 
 
 def collate_fn(batch):
-    images, bboxes, bboxes_length = zip(*batch)
+    images, bboxes = zip(*batch)
+    for i, bbox in enumerate(bboxes):
+        bbox[:, 0] = i
     bboxes = np.concatenate(bboxes, 0)
-    return torch.stack(images, 0), torch.tensor(bboxes), torch.tensor(bboxes_length)
+    return torch.stack(images, 0), torch.from_numpy(bboxes)
 
 # class
 
@@ -58,7 +60,6 @@ class VOCDetection(VOCDetection):
             ET_parse(self.annotations[index]).getroot())
         image = np.array(Image.open(self.images[index]).convert("RGB"))
         bboxes = self._voc_to_yolo(annotation=annotation)
-        bboxes_length = len(bboxes)
         if self.transform is not None:
             bboxes = np.roll(bboxes, -1, -1)
             transformed = self.transform(image=image, bboxes=bboxes)
@@ -66,7 +67,8 @@ class VOCDetection(VOCDetection):
             bboxes = transformed['bboxes']
             bboxes = np.roll(bboxes, 1, -1)
         image = image/255.
-        return image, bboxes, bboxes_length
+        bboxes = np.append(np.zeros((len(bboxes), 1)), bboxes, 1)
+        return image, bboxes
 
 
 class YOLODataset(Dataset):
@@ -83,19 +85,9 @@ class YOLODataset(Dataset):
     def __len__(self):
         return len(self.images)
 
-    def _annotation_to_bboxes(self, annotation):
-        bboxes = []
-        with open(annotation, 'r') as f:
-            for line in f.readlines():
-                bboxes.append(np.array(line[:-1].split(' '), dtype=np.float32))
-        bboxes = np.array(bboxes)
-        return bboxes
-
     def __getitem__(self, index):
-        annotation = self.annotations[index]
         image = np.array(Image.open(self.images[index]).convert("RGB"))
-        bboxes = self._annotation_to_bboxes(annotation=annotation)
-        bboxes_length = len(bboxes)
+        bboxes = np.loadtxt(self.annotations[index], dtype=np.float32)
         if self.transform is not None:
             bboxes = np.roll(bboxes, -1, -1)
             transformed = self.transform(image=image, bboxes=bboxes)
@@ -103,7 +95,8 @@ class YOLODataset(Dataset):
             bboxes = transformed['bboxes']
             bboxes = np.roll(bboxes, 1, -1)
         image = image/255.
-        return image, bboxes, bboxes_length
+        bboxes = np.append(np.zeros((len(bboxes), 1)), bboxes, 1)
+        return image, bboxes
 
 
 class DataModule(LightningDataModule):
@@ -126,6 +119,8 @@ class DataModule(LightningDataModule):
                     self.dataset[stage].annotations = self.dataset[stage].annotations[index]
             assert self.dataset['train'].class_to_idx == self.project_parameters.class_to_idx, 'the class_to_idx is not the same. please check the class_to_idx of data. from YOLODataset: {} from argparse: {}'.format(
                 self.dataset['train'].class_to_idx, self.project_parameters.class_to_idx)
+            self.project_parameters.anchor_boxes = get_anchor_bbox(
+                annotations=self.dataset['train'].annotations, n_clusters=9)
         else:
             train_set = VOCDetection(root=project_parameters.data_path, year='2012',
                                      image_set='train', download=False, transform=self.transform_dict['train'])

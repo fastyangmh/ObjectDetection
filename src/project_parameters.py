@@ -1,8 +1,10 @@
 # import
 import argparse
 import torch
-from os.path import join, abspath
+from os.path import join, abspath, isfile
 from src.utils import load_yaml
+from timm import list_models
+import numpy as np
 
 # class
 
@@ -29,6 +31,8 @@ class ProjectParameters:
                                   help='number of GPUs to train on (int) or which GPUs to train on (list or str) applied per node. if give -1 will use all available GPUs.')
         self._parser.add_argument(
             '--parameters_config_path', type=str, default=None, help='the parameters config path.')
+        self._parser.add_argument(
+            '--image_size', type=int, default=416, help='the image size. hypothesis the image is a square rectangle.')
 
         # data preparation
         self._parser.add_argument(
@@ -40,7 +44,17 @@ class ProjectParameters:
         self._parser.add_argument('--transform_config_path', type=self._str_to_str,
                                   default='config/transform.yaml', help='the transform config path.')
 
-    # debug
+        # model
+        self._parser.add_argument('--in_chans', type=int, default=3,
+                                  help='number of input channels / colors (default: 3).')
+        self._parser.add_argument('--backbone_model', type=str, required=True,
+                                  help='if you want to use a self-defined model, give the path of the self-defined model. otherwise, the provided backbone model is as a followed list. {}'.format(list_models()))
+        self._parser.add_argument('--checkpoint_path', type=str, default=None,
+                                  help='the path of the pre-trained model checkpoint.')
+        self._parser.add_argument('--optimizer_config_path', type=str,
+                                  default='config/optimizer.yaml', help='the optimizer config path.')
+
+        # debug
         self._parser.add_argument(
             '--max_files', type=self._str_to_int, default=None, help='the maximum number of files for loading files.')
         self._parser.add_argument('--profiler', type=str, default=None, choices=[
@@ -93,6 +107,15 @@ class ProjectParameters:
 
         # data preparation
         if project_parameters.predefined_dataset is not None:
+            project_parameters.anchor_boxes = np.array([[0.13, 0.26666667],
+                                                        [0.06, 0.15466667],
+                                                        [0.848, 0.87],
+                                                        [0.302, 0.256],
+                                                        [0.034, 0.05866667],
+                                                        [0.212, 0.5015015],
+                                                        [0.12, 0.096],
+                                                        [0.640625, 0.43466667],
+                                                        [0.396, 0.712]])
             project_parameters.classes = sorted(['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car', 'cat', 'chair',
                                                  'cow', 'diningtable', 'dog', 'horse', 'motorbike', 'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor'])
             project_parameters.class_to_idx = {
@@ -106,6 +129,13 @@ class ProjectParameters:
         if project_parameters.transform_config_path is not None:
             project_parameters.transform_config_path = abspath(
                 project_parameters.transform_config_path)
+
+        # model
+        project_parameters.optimizer_config_path = abspath(
+            project_parameters.optimizer_config_path)
+        if isfile(project_parameters.backbone_model):
+            project_parameters.backbone_model = abspath(
+                project_parameters.backbone_model)
 
         return project_parameters
 
