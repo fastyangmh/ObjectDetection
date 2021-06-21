@@ -127,15 +127,15 @@ class ProjectParameters:
 
         # data preparation
         if project_parameters.predefined_dataset is not None:
-            project_parameters.anchor_boxes = np.array([[0.13, 0.26666667],
+            project_parameters.anchor_boxes = np.array([[0.034, 0.05866667],
                                                         [0.06, 0.15466667],
-                                                        [0.848, 0.87],
-                                                        [0.302, 0.256],
-                                                        [0.034, 0.05866667],
-                                                        [0.212, 0.5015015],
                                                         [0.12, 0.096],
+                                                        [0.13, 0.26666667],
+                                                        [0.212, 0.5015015],
+                                                        [0.302, 0.256],
+                                                        [0.396, 0.712],
                                                         [0.640625, 0.43466667],
-                                                        [0.396, 0.712]])
+                                                        [0.848, 0.87]])
             project_parameters.classes = sorted(['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car', 'cat', 'chair',
                                                  'cow', 'diningtable', 'dog', 'horse', 'motorbike', 'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor'])
             project_parameters.class_to_idx = {
