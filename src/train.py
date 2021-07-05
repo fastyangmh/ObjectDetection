@@ -11,7 +11,7 @@ warnings.filterwarnings("ignore")
 
 
 def _get_trainer(project_parameters):
-    callbacks = [ModelCheckpoint(monitor='validation loss', mode='min'),
+    callbacks = [ModelCheckpoint(monitor='validation mAP', mode='max'),
                  LearningRateMonitor(logging_interval='epoch', log_momentum=True)]
     if project_parameters.use_early_stopping:
         callbacks.append(EarlyStopping(monitor='validation loss',

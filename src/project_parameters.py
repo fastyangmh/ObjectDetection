@@ -149,6 +149,8 @@ class ProjectParameters:
                                                  'cow', 'diningtable', 'dog', 'horse', 'motorbike', 'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor'])
             project_parameters.class_to_idx = {
                 c: idx for idx, c in enumerate(project_parameters.classes)}
+            project_parameters.idx_to_class = {
+                v: k for k, v in project_parameters.class_to_idx.items()}
             project_parameters.num_classes = len(project_parameters.classes)
         else:
             if project_parameters.mode != 'predict':
@@ -164,6 +166,8 @@ class ProjectParameters:
             project_parameters.classes = sorted(project_parameters.classes)
             project_parameters.class_to_idx = {
                 c: idx for idx, c in enumerate(project_parameters.classes)}
+            project_parameters.idx_to_class = {
+                v: k for k, v in project_parameters.class_to_idx.items()}
             project_parameters.num_classes = len(project_parameters.classes)
         if project_parameters.transform_config_path is not None:
             project_parameters.transform_config_path = abspath(

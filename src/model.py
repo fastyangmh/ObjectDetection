@@ -9,8 +9,9 @@ import math
 import numpy as np
 import torch.nn.functional as F
 from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
-from src.utils import load_yaml, load_checkpoint
+from src.utils import load_yaml, load_checkpoint, DetectionMAP
 import torch.optim as optim
+from src.utils import get_bboxes_from_anchors, xywh2xyxy
 
 # def
 
@@ -813,39 +814,83 @@ class Net(LightningModule):
 
     def _parse_outputs(self, outputs):
         epoch_loss = []
+        epoch_mAP = []
         for step in outputs:
             epoch_loss.append(step['loss'].item())
-        return epoch_loss
+            epoch_mAP.append(step['mAP'])
+        return epoch_loss, epoch_mAP
 
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat, loss = self.training_forward(x, y)
-        return {'loss': loss}
+        bboxes, _ = get_bboxes_from_anchors(anchors=y_hat, confidence_threshold=self.project_parameters.confidence_threshold,
+                                            iou_threshold=self.project_parameters.iou_threshold, labels_dict=self.project_parameters.idx_to_class)
+        bboxes = torch.cat(bboxes, 0)
+        mAP = 0
+        if len(bboxes) > 0:
+            pred_bb = bboxes[:, :4].cpu().data.numpy()
+            pred_cls = bboxes[:, 5:].argmax(-1).cpu().data.numpy()
+            pred_conf = bboxes[:, 4].cpu().data.numpy()
+            gt_bb = xywh2xyxy(y[:, 2:]).cpu().data.numpy() * \
+                self.project_parameters.image_size
+            gt_cls = y[:, 1].cpu().data.numpy()
+            mAP = DetectionMAP(self.project_parameters.num_classes).get_mean_average_precision(
+                pred_bb=pred_bb, pred_classes=pred_cls, pred_conf=pred_conf, gt_bb=gt_bb, gt_classes=gt_cls)
+        return {'loss': loss, 'mAP': mAP}
 
     def training_epoch_end(self, outputs) -> None:
-        epoch_loss = self._parse_outputs(outputs=outputs)
+        epoch_loss, epoch_mAP = self._parse_outputs(outputs=outputs)
         self.log('training loss', np.mean(epoch_loss),
                  on_epoch=True, prog_bar=True)
+        self.log('training mAP', np.mean(epoch_mAP))
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
         y_hat, loss = self.training_forward(x, y)
-        return {'loss': loss}
+        bboxes, _ = get_bboxes_from_anchors(anchors=y_hat, confidence_threshold=self.project_parameters.confidence_threshold,
+                                            iou_threshold=self.project_parameters.iou_threshold, labels_dict=self.project_parameters.idx_to_class)
+        bboxes = torch.cat(bboxes, 0)
+        mAP = 0
+        if len(bboxes) > 0:
+            pred_bb = bboxes[:, :4].cpu().data.numpy()
+            pred_cls = bboxes[:, 5:].argmax(-1).cpu().data.numpy()
+            pred_conf = bboxes[:, 4].cpu().data.numpy()
+            gt_bb = xywh2xyxy(y[:, 2:]).cpu().data.numpy() * \
+                self.project_parameters.image_size
+            gt_cls = y[:, 1].cpu().data.numpy()
+            mAP = DetectionMAP(self.project_parameters.num_classes).get_mean_average_precision(
+                pred_bb=pred_bb, pred_classes=pred_cls, pred_conf=pred_conf, gt_bb=gt_bb, gt_classes=gt_cls)
+        return {'loss': loss, 'mAP': mAP}
 
     def validation_epoch_end(self, outputs) -> None:
-        epoch_loss = self._parse_outputs(outputs=outputs)
+        epoch_loss, epoch_mAP = self._parse_outputs(outputs=outputs)
         self.log('validation loss', np.mean(epoch_loss),
                  on_epoch=True, prog_bar=True)
+        self.log('validation mAP', np.mean(epoch_mAP))
 
     def test_step(self, batch, batch_idx):
         x, y = batch
         y_hat, loss = self.training_forward(x, y)
-        return {'loss': loss}
+        bboxes, _ = get_bboxes_from_anchors(anchors=y_hat, confidence_threshold=self.project_parameters.confidence_threshold,
+                                            iou_threshold=self.project_parameters.iou_threshold, labels_dict=self.project_parameters.idx_to_class)
+        bboxes = torch.cat(bboxes, 0)
+        mAP = 0
+        if len(bboxes) > 0:
+            pred_bb = bboxes[:, :4].cpu().data.numpy()
+            pred_cls = bboxes[:, 5:].argmax(-1).cpu().data.numpy()
+            pred_conf = bboxes[:, 4].cpu().data.numpy()
+            gt_bb = xywh2xyxy(y[:, 2:]).cpu().data.numpy() * \
+                self.project_parameters.image_size
+            gt_cls = y[:, 1].cpu().data.numpy()
+            mAP = DetectionMAP(self.project_parameters.num_classes).get_mean_average_precision(
+                pred_bb=pred_bb, pred_classes=pred_cls, pred_conf=pred_conf, gt_bb=gt_bb, gt_classes=gt_cls)
+        return {'loss': loss, 'mAP': mAP}
 
     def test_epoch_end(self, outputs) -> None:
-        epoch_loss = self._parse_outputs(outputs=outputs)
+        epoch_loss, epoch_mAP = self._parse_outputs(outputs=outputs)
         self.log('test loss', np.mean(epoch_loss),
                  on_epoch=True, prog_bar=True)
+        self.log('test mAP', np.mean(epoch_mAP))
 
     def configure_optimizers(self):
         optimizer = _get_optimizer(model_parameters=self.parameters(
@@ -878,3 +923,9 @@ if __name__ == '__main__':
     # display the dimension of input and output
     print(x.shape)
     print(y.shape)
+
+    #
+
+    idx_to_class = {v: k for k, v in project_parameters.class_to_idx.items()}
+    bboxes, labels = get_bboxes_from_anchors(anchors=y, confidence_threshold=project_parameters.confidence_threshold,
+                                             iou_threshold=project_parameters.iou_threshold, labels_dict=idx_to_class)
